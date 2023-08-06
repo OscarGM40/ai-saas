@@ -1,0 +1,378 @@
+   AI SAAS MERN Project	
+
+Source: https://www.youtube.com/watch?v=ffJ38dBzrlY
+
+Vamos a usar la libreria 'shadcn/ui' para estilizar la aplicación. Es una libreria opinionada con componentes ya estilizados,parecida
+ a bootstrap.De su documentación :
+ 
+Re-usable components built using Radix UI and Tailwind CSS.
+This is NOT a component library. It's a collection of re-usable components that you can copy and paste into your apps.
+
+What do you mean by not a component library?
+I mean you do not install it as a dependency. It is not available or distributed via npm.
+Pick the components you need. Copy and paste the code into your project and customize to your needs. The code is yours.
+
+La Url de la libreria es https://ui.shadcn.com/docs.Tiene tmb una sección con comandos para los starters más usados,como Vite,Next o React
+
+Asi pues vamos a la sección de Next y creamos un proyecto con:
+npx create-next-app@latest my-app --typescript --tailwind --eslint <- puedo sustituir 'my-app' por el punto si ya estoy en la carpeta
+No selecciono usar la carpeta 'src'.
+
+Despues vamos a iniciar esta libreria en ese proyecto con:
+npx shadcn-ui@latest init
+Eligo typescript, los estilos por defecto y color 'slate'.Dejo el archivo global en app/global.css.Usaremos variables para 
+los colores .La ruta de config de tailwind deberia estar correcta.El resto elegir la opcion recomendada
+Realmente hemos elegido todo por defecto.
+
+Esto inicializará esta lib en nuestro proyecto, ya podemos verlo con 'npm run dev'.
+El autor recalca que usa esta libreria porque al usar esta libreria vamos a tener acceso a los componentes,ya que se van a alojar en la carpeta componentes
+Para instalar un componente lo puedo hacer desde la cli:
+npx shadcn-ui@latest add button <- fijate que esto me instala el botón,pero le puedo cambiar o añadir lo que quiera,es decir,que su caracteristica principal sería que  es un libreria de componentes altamente customizables y de los que tendré una copia 
+
+Recuerda que para crear una ruta tengo que crear un file llamado 'page.tsx' dentro de app y su localización será la ruta.Sin embargo,puedo marcar un folder como una 'route group' para prevenir que el folder se convierta en una ruta.
+
+Para realizar esto simplemente debo crear el folder con un nombre entre parentesis.De esta forma puedo agrupar los folders que si tendrán un page.js en suprafolders que no sean parte de la ruta.ES algo vital para llevar un orden,lógicamente
+
+Minuto 25: para la autenticación vamos a usar clerk(https://clerk.com/).Me registro en su app y genero una app con Google y Custom Email como providres.Copio las keys al proyecto y voy a la doc oficial (https://clerk.com/docs/nextjs/get-started-with-nextjs)
+
+Aqui ya veo que me pide instalar la libreria:
+npm install @clerk/nextjs
+
+Y tmb hay que montar un HOC en el punto más alto de la app:
+import { ClerkProvider } from "@clerk/nextjs";
+
+  return (
+    <ClerkProvider>
+      <html lang="en">
+        <body className={inter.className}>{children}</body>
+      </html>
+    </ClerkProvider>
+  );
+}
+
+Despues es hora de usar un middleware que especifique qué rutas son publicas y cuales privadas.Para ello hay que crear un archivo 'middleware.ts' en el directorio raiz(más afuera de app en nuestro caso,o sea afuera del todo)
+
+Tras estos dos pasos hay que crear nuestras rutas/páginas para el signup y signin.De nuevo,clerk me ofrece ya todo esto.Eso si,la ubicación debe ser la que ellos dicen,etc:
+
+Una vez en /sign-up/[[...sign-up]]/page.tsx:
+
+import { SignUp } from '@clerk/nextjs';
+
+export default function(){
+   return <SignUp /> <- ellos ya me dan la página 
+}
+
+Lo mismo para el sign-in.Por último faltan unas variables de entorno por copiar,fijate que vamos a modificar la url de redirección tras el login/register a /dashboard.
+Fijate tmb que hemos tenido que declarar la home como ruta pública en el middleware
+
+Minuto 35: seguimos con la incorporacion del componente UserMenu para que el usuario pueda hacer logout y varios layouts.Fijate que tenemos acceso a la libreria 'lucide-react' por haber escogido el estilo por default(son iconos)
+
+Minuto 54: fijate en lo útil que es la función mergeardora que nos da esta libreria, y que va  a poder mergear clases de Tailwind con clases normales (usando clsx)
+
+** En lib/utils.ts
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+ 
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+Ya solo hay que llamar a la funcion cuando lo necesite:
+ <h1 className={cn("text-2xl font-bold",montserrat.className)}>Genius</h1>
+
+ Asinto, hacer zoom-in reducirá los px de la pagina(con lo que si hago zoom-in desde XL entro a L) y de igual manera hacer zoom-out desde por ejemplo 1880px me llevará a XL
+
+ 1h03: vamos a instalar otro componente de la libreria shadcn:
+ >npx shadcn-ui@latest add sheet <- fijate que es 'lib add xxx' en resumen
+ 
+ 1h17m:seguimos poniendo las cards con los links,muy interesante su approach
+
+Truco para pasar props condicionalmente en Typescript
+ Video: https://www.youtube.com/watch?v=9i38FPugxB8
+ A menudo me encontraré con que quiero determinadas propiedades si el usuario es un hombre o una mujer, o si el 
+ estado es succesful o warning,etc.Hay varias formas de afrontar esto:
+
+* Por ejemplo, tenemos un componente padre que retorna un hijo
+ const Parent = () => <Child />
+
+ Y ese hijo necesita tener acceso a ciertas propiedades segun el género,por ejemplo:
+Queremos que si es female solo tenga el weight y si es male solo acceso a salary.
+Obviamente esto no nos vale,pues tenemos acceso a todo:
+type Props = {
+  name:string;
+  gender: 'male' | 'female';
+  salary?:number;
+  weight?:number;
+}
+* No estamos consiguiendo nada,tenemos acceso a todo
+ const Child = ({name,gender,salary,weight}:Props) => {
+  return <div>child</div>
+ }
+
+Una primera solución sería usar union e intersección de tipos.
+NOTA: un union type describe un valor que puede ser uno entre varios tipos(luego usaré la | para unirlos)
+NOTA: un intersection type está closely related to union types, pero se usa diferente.Un intersection type(&) combina multiples tipos en uno.Esto permite añadir diferentes tipos en otro que contenga todas las caracteristicas que necesite.
+Por ejemplo Person & Serializable & Loggable combinaría todo lo que puede hacer cada tipo en uno solo.Por ejemplo podria sacar la gestion de errores de la respuesta:
+
+interface ErrorHandling {
+  success:boolean;
+  error?:{message:string}
+}
+interface ArtworksData{
+  artworks: {title:string}[]
+}
+interface ArtistsData{
+  artists:{name:string}[]
+}
+Y ahora combino las interfaces con intersection types:
+
+type ArtworksResponse = ArtworksData & ErrorHandling;
+type ArtistsResponse = ArtistsData & ErrorHandling; <- amazing
+*Fijate que estoy combinando interfaces(necesito que sea un type el resultado??,investigar)
+
+
+IMPORTANTE: mediante la intersección + union de tipos puedo conseguir cosas como esta:
+
+ type Props = {
+   name: string
+ } & ({ 
+       gender:'male',
+       salary:number 
+   } | {
+       gender:'female',
+       weight:number}) 
+Fijate que es & ({} | {}) O une A + B o A + C,de ahi los parentesis,que obligan a que se una con uno
+
+Ahora desde el padre si le paso el gender a 'male' me pedirá el salary y además no me dejará meter un weight.
+
+NOTA: en producción se recomienda usar una sintaxis asi:
+
+type Props = {
+  name: string
+} & (MaleProps | FemaleProps)
+
+type MaleProps = {
+  gender: 'male',
+  salary:number
+}
+type FemaleProps = {
+  gender: 'female',
+  weight: number
+}
+
+IMPORTANTE: para acceder a estas propiedades condicionales ahora tengo que usar type Guards:
+
+const Child = (props:Props) => {
+  if(props.gender === 'male'){ <- necesito un if | type Guard
+    console.log(props.salary)
+  }
+}
+
+NOTA: todo esto ya lo estamos haciendo en los tipos de los reducers,usando union types:
+
+type ApiResponse<T> = 
+| { status: 'success',data: T,timestamp:Date}
+| {status: 'error',message:string,timestamp:Date} <- o es uno o es otro
+
+let response1: ApiResponse<number> = {
+  status:'success', <- en el momento que se sepa este estado tendré acceso a la data
+  data: 100,
+  timestamp: new Date()
+}
+
+Super interesante esto, fijate tmb que siempre pude usar sólo union types repitiendo el name,o usar union + intersection y abstraer el name de las unions.Seguramente usar solo unions puede ser más claro
+
+1h28m: vamos a usar Forms con shadcn.Fijate que ellos están usando react-hook-form por detrás,con todo lo bueno que significa esto.Lo primero será instalar este 'componente':
+npx shadcn-ui@latest add form 
+Esto instalará varios controles de formulario asi como algunos validators,es un poco más pesada que las otras,lógicamente
+
+Fijate que incluso tenemos que traer  el hook useForm de react-hook-form.PAra el Schema y validaciones usaremos 'zod' que tmb tenemos instalado ya.
+TIP: recuerda que en el hook useForm debo declarar los defaultValues(supongo que si uso un Schema es diferente)
+
+const form = useForm({
+  defaultValues:{
+    name:"",
+    password:"",
+  }
+})
+La Url: https://ui.shadcn.com/docs/components/form
+
+El Schema con sus validaciones gracias a zod(fijate en el uso de z.object de forma muy parecida a yup.object o yup.schema creo que era):
+import * as z from "zod";
+
+export const formSchema = z.object({
+    prompt: z.string().min(1,{message:"Prompt is required"})
+});
+
+Ahora hay que cambiar el hook y pasarle un resolver y el genérico
+
+import * as z from "zod";
+import {zodResolver} from "@hookform/resolvers/zod";
+import { formSchema } from "./constants";
+
+const ConversationPage = () => {
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver:zodResolver(formSchema),
+        defaultValues:{
+            prompt:""
+        }
+    });
+Fijate en el uso de <z.infer<Schema>> como genérico y el uso de un resolver para las validaciones(resolver:zodResolver(miSchema))
+
+linea 54 1h 37 instalando el input de shadcn
+TIP: echar un ojo a la libreria mantine, libreria que expone un montón de hooks útiles y superusados,puede servirme 
+si no para implementarla para ver como lo hicieron ellos.
+NOTA: recuerda mirar el ejemplo de ReactPi de Midu
+
+1h42m : integrando Open AI .Para integrar esta AI lo primero es crearme una cuenta( en openai.com).Despues cuando me dé a elegir eligo la AI de modelos,no el chatGPT.Fijate que me dan una tier de 5$ solo,no es free.Además solo dura 3 meses.Despues de los 3 meses o pasarme de los 5$ tengo que ir a Billing y añadir una tarjeta(ojo,si lo hiciera deberia poner limites).Todo esto lo puedo ver desde mi avatar.
+Bien, ahora hay que generar una clave programática para esta app(en API keys)
+Por último hay que instalar la libreria con npm:
+npm install openai
+
+Despues hay que instanciar/configurar la AI:
+import  { Configuration, OpenAIApi } from "openai";
+
+const configuration = new Configuration({
+    apiKey:process.env.OPENAI_SECRET_KEY
+})
+
+const openai = new OpenAIApi(configuration)
+
+export async function POST(req:Request){
+    try {
+       const { userId } = auth(); 
+       const body = await req.json();
+       // como sabe que está esta propiedad ??
+       const { messages } = body;
+       if(!userId){
+        return new NextResponse("Unauthorized",{status: 401})
+       }
+       if(!configuration.apiKey){
+        return new NextResponse("OpenAI API Key not configured",{status: 500})
+       }
+       if(!messages){
+        return new NextResponse("Messages are required",{status: 400})
+       }
+
+       const response = await openai.createChatCompletion({
+        model:'gpt-3.5-turbo',
+        messages
+       })
+       return NextResponse.json(response.data.choices[0].message)
+    } catch (error) {
+        console.log(error)
+        return new NextResponse('Internal eror',{status: 500})
+    }
+}
+
+Con esto ya tenemos el endpoint de respuesta de /conversation con la conexión a OpenAI.Recuerda que en Next 13 sigo teniendo que crear la subcarpeta 'api',dentro de 'app', asi que este file estaría en app/api/conversation/route.ts.
+
+Obviamente nos falta hacer la petición desde la page,para esto vamos a usar e instalar axios.
+2h04m: vamos a instalar el componente avatar de shadcn.Fijate que clerk me expone el hook useUser() =>
+npx shadcn-ui@latest add avatar
+
+
+2h09m: seguiremos por code-generation,ya que es bastante parecida al modulo de conversation que acabamos de hacer
+2h15m: fijate que practicamente solo ha habido que cambiar un par de cosas,sin embargo, si que es importante entender
+que la salida va a ser en markdown y por ello tenemos que usar la libreria 'react-markdown'.
+>npm i react-markdown
+
+2h19m: Image Generation salvo algunos pequeños cambios en el body(interesantes sus formularios) y en la grid y la llamada a openai.createImage con otros parametros
+todo es bastante parecido.
+
+2h 43m: Music Generation => importante, para crear música no vamos a usar openai, vamos a usar replicate.
+De nuevo hay una free tier y no es necesario dar la tarjeta en ese periodo.Genero un token y lo copio a las variables.
+Recuerda que si pongo una tarjeta debo poner un limite asequible
+Tambien hay que instalar la libreria para node,claro:
+npm i replicate
+Aparte de esto es simplemente seguir su documentación, ha implementado el ejemplo más sencillo.
+3h00m: de nuevo vamos a usar replicate para generar modelos de video,entiendo que openai no ofrece esto.Desde luego es un tutorial interesante
+
+Tras haber implementado la peticion del video,que es practicamente igual, procedemos a instalar prisma para implementar la limitación de peticiones
+npm i -D prisma
+También necesitamos el cliente:
+npm i @prisma/client
+
+NOTA: siempre que instale este ORM tengo que inicializarlo con:
+npx prisma init (prisma init + el apoyo)
+
+Despues creo los modelos a usar y los subo con npx prisma db push.En este caso usaremos planet scale en vez de MongoAtlas:
+
+En el archivo schema.prisma donde configuramos todo:
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+  model UserApiLimit {
+    id String @id @default(cuid())
+    userId String @unique
+    count Int @default(0)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+  }
+
+>npx prisma db push
+Recuerda que estamos creando un file a la misma altura llamado prismadb.ts(diría que lo importante es que el schema.prisma va dentro de lib)
+No puede ser más fácil usar prisma,aparte de aprender su sintaxis
+
+NOTA: puedo abrir una interfaz web con el comando 'npx prisma studio'.Bien, una vez con el modelo cargado en la db simplemente creamos dos utilities,la primera para
+incrementar en uno la propiedad count y la segunda para checkear si realmente podemos incrementar o ya hemos llegado al limite y no es necesario:
+
+export const increaseApiLimit = async () => {
+  const { userId } = auth();
+  if (!userId) return;
+  // prismainstance.model.findUnique({where:{}})
+  const userApiLimit = await prismadb.userApiLimit.findUnique({
+    where: { userId },
+  });
+  // prismainstance.model.update({where:{},data:{}})
+  if (userApiLimit) {
+    await prismadb.userApiLimit.update({
+      where: { userId },
+      data: { count: userApiLimit.count + 1 },
+    });
+  } else {
+    // await prismadb.model.create({data:{}}) <- parece que create lo guarda tmb
+    await prismadb.userApiLimit.create({
+      data: {
+        userId: userId,
+        count: 1,
+      },
+    });
+  }
+};
+
+export const checkApiLimit = async () => {
+  const { userId } = auth();
+  if (!userId) return false;
+
+  const userApiLimit = await prismadb.userApiLimit.findUnique({
+    where: { userId },
+  });
+  if (!userApiLimit || userApiLimit.count < MAX_FREE_COUNTS) {
+    return true;
+  }
+  return false;
+};
+
+Fijate que todo esto es superinteresante,no tengas miedo,haz sinergia con el equipo en el que estes,es imposible que no lo vean asi tus futuribles compañeros
+3h23m: implementar el contador de peticiones restante:Para esto usaremos el componente progress:
+>npx shadcn-ui@latest add progress
+
+3h28m: fijate como hemos definido una acción/comportamiento que al ser asincrono lo tengo que llamar en un server component pero despues pintaré con ese valor un client component.Desde luego Next parece superpotente.
+
+Te ha faltado mirar Figma.
+NOTA: fijate que de todos los imports el del icono del file parece que pilla los alias siempre que puede
+
+3h35m: fijate como poner el Boton que requiere que el usuario pague más llamativo es una decisión acertada.Ya de paso asi vemos como añadir otra variant al Button de shadcn (recuerda que son customizables por el desarrollador)
+Simplemente se trata de añadir otra variant.Muy interesante
+Todo esto funciona bien por el router.refresh() del finally del onSubmit, asinto
+
+3h40m: Premium Modal UI, cuando hagamos click en Upgrade queremos abrir esta modal( o tmb cuando recibamos un 403 tras tener el contador lleno)
+Instalando zustand
